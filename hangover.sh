@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=9.22
+version=10.11
 
 # https://github.com/raspberrypi/bookworm-feedback/issues/107
 PAGE_SIZE="$(getconf PAGE_SIZE)"
@@ -43,12 +43,16 @@ if [ "$__os_codename" == "bullseye" ]; then
   ho_distro="debian11"
 elif [ "$__os_codename" == "bookworm" ]; then
   ho_distro="debian12"
+elif [ "$__os_codename" == "trixie" ]; then
+  ho_distro="debian13"
 elif [ "$__os_codename" == "focal" ]; then
   ho_distro="ubuntu2004"
 elif [ "$__os_codename" == "jammy" ]; then
   ho_distro="ubuntu2204"
 elif [ "$__os_codename" == "noble" ]; then
   ho_distro="ubuntu2404"
+elif [ "$__os_codename" == "plucky" ]; then
+  ho_distro="ubuntu2504"
 else
   error "User error: You are not using a supported Pi-Apps distribution."
 fi
@@ -57,8 +61,19 @@ cd /tmp || error "Could not move to /tmp folder"
 wget https://github.com/AndreRH/hangover/releases/download/hangover-${version}/hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar || error "Failed to download Hangover!"
 tar -xf hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar || error "Failed to extract Hangover!"
 rm -f hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar
-install_packages /tmp/hangover-libarm64ecfex_${version}_arm64.deb /tmp/hangover-libqemu_${version}~${__os_codename}_arm64.deb /tmp/hangover-libwow64fex_${version}_arm64.deb /tmp/hangover-wine_${version}~${__os_codename}_arm64.deb || exit 1
-rm -f ./hangover-libarm64ecfex_${version}_arm64.deb ./hangover-libqemu_${version}~${__os_codename}_arm64.deb ./hangover-libwow64fex_${version}_arm64.deb ./hangover-wine_${version}~${__os_codename}_arm64.deb
+
+install_packages \
+  /tmp/hangover-libarm64ecfex_${version}_arm64.deb \
+  /tmp/hangover-libwow64fex_${version}_arm64.deb \
+  /tmp/hangover-wine_${version}~${__os_codename}_arm64.deb \
+  /tmp/hangover-wowbox64_${version}_arm64.deb \
+  || exit 1
+
+rm -f \
+  ./hangover-libarm64ecfex_${version}_arm64.deb \
+  ./hangover-libwow64fex_${version}_arm64.deb \
+  ./hangover-wine_${version}~${__os_codename}_arm64.deb \
+  ./hangover-wowbox64_${version}_arm64.deb
 
 cat << EOF | sudo tee /usr/local/bin/generate-hangover-prefix >/dev/null
 #!/bin/bash
