@@ -72,7 +72,7 @@ tar -xf hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar || error "Fa
 rm -f hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar
 
 # install .deb files using PACKAGES list
-echo -n "Installing Hangover packages... "
+info "Installing Hangover packages..."
 for pkg in "${PACKAGES[@]}"; do
   if [ "$pkg" = "hangover-wine" ]; then
     deb="/tmp/${pkg}_${version}~${__os_codename}_arm64.deb"
@@ -81,9 +81,10 @@ for pkg in "${PACKAGES[@]}"; do
   fi
   sudo apt install -y "$deb" || exit 1
 done
-echo "Done"
+info "Done"
 
 # cleanup .deb files using PACKAGES list
+info "Cleanup Hangover packages..."
 for pkg in "${PACKAGES[@]}"; do
   if [ "$pkg" = "hangover-wine" ]; then
     deb="/tmp/${pkg}_${version}~${__os_codename}_arm64.deb"
@@ -92,6 +93,7 @@ for pkg in "${PACKAGES[@]}"; do
   fi
   rm -f "$deb"
 done
+info "Done"
 
 cat << 'EOF' | sudo tee /usr/local/bin/generate-hangover-prefix >/dev/null
 #!/bin/bash
@@ -164,6 +166,11 @@ echo '
 "winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"' >> $TMPFILE
 
 wine regedit $TMPFILE
+
+# Make sure HKCU also gets added even on existing prefixes
+wine reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices" \
+  /v winemenubuilder /t REG_SZ \
+  /d "C:\\windows\\system32\\winemenubuilder.exe -r" /f
 
 rm -f $TMPFILE
 fi #end of if statement that only runs if this script was started when there was no wine registry
