@@ -44,6 +44,11 @@ for pkg in "${PACKAGES[@]}"; do
 done
 info "Done"
 
+# remove orphaned dependencies
+info "Removing orphaned dependencies..."
+sudo apt autoremove --purge -y || true
+info "Done"
+
 # warn about remaining Wine prefix
 if [ -d "$HOME/.wine" ]; then
   info "You just uninstalled the Hangover app, but it's not completely gone yet."
