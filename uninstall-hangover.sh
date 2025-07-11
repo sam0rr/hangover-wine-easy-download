@@ -9,6 +9,14 @@ PACKAGES=(
   hangover-wine
 )
 
+# Recommended packages for better compatibility
+RECOMMENDED_PACKAGES=(
+  libglu1-mesa
+  libglu1
+  libodbc1
+  libsdl2-2.0-0
+)
+
 # Helper functions
 error() {
   echo -e "\033[31mERROR: $1\033[0m" >&2
@@ -45,6 +53,13 @@ info "Done"
 info "Purging Hangover packages..."
 for pkg in "${PACKAGES[@]}"; do
   sudo apt purge -y "${pkg}"* || true
+done
+info "Done"
+
+# purge recommended packages
+info "Purging recommended packages..."
+for pkg in "${RECOMMENDED_PACKAGES[@]}"; do
+  sudo apt purge -y "$pkg" || info "Package $pkg was not installed or failed to remove (this is usually fine)"
 done
 info "Done"
 

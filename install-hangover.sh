@@ -11,6 +11,14 @@ PACKAGES=(
   hangover-wine
 )
 
+# Recommended packages for better compatibility
+RECOMMENDED_PACKAGES=(
+  libglu1-mesa
+  libglu1
+  libodbc1
+  libsdl2-2.0-0
+)
+
 # Helper functions
 error() {
   echo -e "\033[31mERROR: $1\033[0m" >&2
@@ -84,6 +92,13 @@ for pkg in "${PACKAGES[@]}"; do
     deb="/tmp/${pkg}_${version}_arm64.deb"
   fi
   sudo apt install -y "$deb" || exit 1
+done
+info "Done"
+
+# install recommended dependencies
+info "Installing recommended dependencies..."
+for pkg in "${RECOMMENDED_PACKAGES[@]}"; do
+  sudo apt install -y "$pkg" || info "Package $pkg failed to install (this is usually fine)"
 done
 info "Done"
 
