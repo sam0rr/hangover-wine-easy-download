@@ -11,12 +11,12 @@ PACKAGES=(
 
 # Helper functions
 error() {
-  echo "ERROR: $1" >&2
+  echo -e "\033[31mERROR: $1\033[0m" >&2
   exit 1
 }
 
 info() {
-  echo "INFO: $1"
+  echo -e "\033[32mINFO: $1\033[0m"
 }
 
 # kill any running Wine processes
