@@ -9,15 +9,20 @@ PACKAGES=(
   hangover-wine
 )
 
-# Helper functions
-error() {
+# Define functions as variables for reuse
+ERROR_FUNC='error() {
   echo -e "\033[31mERROR: $1\033[0m" >&2
   exit 1
-}
+}'
 
-info() {
+INFO_FUNC='info() {
   echo -e "\033[32mINFO: $1\033[0m"
-}
+}'
+
+# Helper functions
+${ERROR_FUNC}
+
+${INFO_FUNC}
 
 # kill any running Wine processes
 pkill -9 wine 2>/dev/null || true

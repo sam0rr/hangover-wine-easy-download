@@ -11,15 +11,20 @@ PACKAGES=(
   hangover-wine
 )
 
-# Helper functions
-error() {
+# Define functions as variables for reuse
+ERROR_FUNC='error() {
   echo -e "\033[31mERROR: $1\033[0m" >&2
   exit 1
-}
+}'
 
-info() {
+INFO_FUNC='info() {
   echo -e "\033[32mINFO: $1\033[0m"
-}
+}'
+
+# Helper functions
+${ERROR_FUNC}
+
+${INFO_FUNC}
 
 # Detect OS codename
 if [ -f /etc/os-release ]; then
@@ -95,20 +100,23 @@ for pkg in "${PACKAGES[@]}"; do
 done
 info "Done"
 
-cat << 'EOF' | sudo tee /usr/local/bin/generate-hangover-prefix >/dev/null
-#!/bin/bash
+cat << EOF | sudo tee /usr/local/bin/generate-hangover-prefix >/dev/null
+#!/usr/bin/env bash
 
-if [ "$(id -u)" == 0 ];then
-  echo "ERROR: Please don't run this script with sudo." >&2
-  exit 1
+${ERROR_FUNC}
+
+${INFO_FUNC}
+
+if [ "\$(id -u)" == 0 ];then
+  error "Please don't run this script with sudo."
 fi
 
-if [ -z "$WINEPREFIX" ];then
-  WINEPREFIX="$HOME/.wine"
+if [ -z "\$WINEPREFIX" ];then
+  WINEPREFIX="\$HOME/.wine"
 fi
 export WINEPREFIX
 
-if [ -f "$WINEPREFIX/system.reg" ];then
+if [ -f "\$WINEPREFIX/system.reg" ];then
   registry_exists=true
 else
   registry_exists=false
@@ -116,63 +124,63 @@ fi
 
 export WINEDEBUG=-virtual #hide harmless memory errors
 
-if [ -e "$WINEPREFIX" ];then
-  echo "Checking Wine prefix at $WINEPREFIX..."
-  echo "To choose another prefix, set the WINEPREFIX variable."
+if [ -e "\$WINEPREFIX" ];then
+  info "Checking Wine prefix at \$WINEPREFIX..."
+  info "To choose another prefix, set the WINEPREFIX variable."
   echo -n "Waiting 5 seconds... "
   sleep 5
   echo
   # check for existance of incompatible prefix (see server_init_process https://github.com/wine-mirror/wine/blob/884cff821481b4819f9bdba455217bd5a3f97744/dlls/ntdll/unix/server.c#L1544-L1670)
   # Boot wine and check for errors (make fresh wineprefix)
-  output="$(set -o pipefail; wine wineboot 2>&1 | tee /dev/stderr; )" #this won't display any dialog boxes that require a button to be clicked
-  if [ "$?" != 0 ]; then
+  output="\$(set -o pipefail; wine wineboot 2>&1 | tee /dev/stderr; )" #this won't display any dialog boxes that require a button to be clicked
+  if [ "\$?" != 0 ]; then
     echo "Your previously existing Wine prefix failed with an error (see terminal log)."
     echo "Removing and regenerating Wine prefix..."
-    rm -rf "$WINEPREFIX"
+    rm -rf "\$WINEPREFIX"
     registry_exists=false
     wine wineboot #this won't display any dialog boxes that require a button to be clicked
   fi
   #wait until above process exits
   sleep 2
-  while [ ! -z "$(pgrep -i 'wine C:')" ];do
+  while [ ! -z "\$(pgrep -i 'wine C:')" ];do
     sleep 1
   done
 else
-  echo "Generating Wine prefix at $WINEPREFIX..."
-  echo "To choose another prefix, set the WINEPREFIX variable."
-  echo "Waiting 5 seconds..."
+  info "Generating Wine prefix at \$WINEPREFIX..."
+  info "To choose another prefix, set the WINEPREFIX variable."
+  info "Waiting 5 seconds..."
   sleep 5
   # Boot wine (make fresh wineprefix)
   wine wineboot #this won't display any dialog boxes that require a button to be clicked
   #wait until above process exits
   sleep 2
-  while [ ! -z "$(pgrep -i 'wine C:')" ];do
+  while [ ! -z "\$(pgrep -i 'wine C:')" ];do
     sleep 1
   done
 fi
 
-if [ "$registry_exists" == false ];then
-echo "Making registry changes..."
-TMPFILE="$(mktemp)" || exit 1
-echo 'REGEDIT4' > $TMPFILE
+if [ "\$registry_exists" == false ];then
+info "Making registry changes..."
+TMPFILE="\$(mktemp)" || exit 1
+echo 'REGEDIT4' > \$TMPFILE
 
-echo "  - Disabling Wine mime associations" #see https://askubuntu.com/a/400430
+info "  - Disabling Wine mime associations" #see https://askubuntu.com/a/400430
 
 echo '
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunServices]
 "winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"
 
 [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunServices]
-"winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"' >> $TMPFILE
+"winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"' >> \$TMPFILE
 
-wine regedit $TMPFILE
+wine regedit \$TMPFILE
 
 # Make sure HKCU also gets added even on existing prefixes
-wine reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices" \
-  /v winemenubuilder /t REG_SZ \
+wine reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices" \\
+  /v winemenubuilder /t REG_SZ \\
   /d "C:\\windows\\system32\\winemenubuilder.exe -r" /f
 
-rm -f $TMPFILE
+rm -f \$TMPFILE
 fi #end of if statement that only runs if this script was started when there was no wine registry
 true
 EOF
