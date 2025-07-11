@@ -11,40 +11,40 @@ PACKAGES=(
   hangover-wowbox64
 )
 
+# Helper functions
+error() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
+info() {
+  echo "INFO: $1"
+}
+
+# Detect OS codename
+if [ -f /etc/os-release ]; then
+  . /etc/os-release
+  __os_codename="$VERSION_CODENAME"
+else
+  error "Cannot detect OS codename"
+fi
+
 # https://github.com/raspberrypi/bookworm-feedback/issues/107
 PAGE_SIZE="$(getconf PAGE_SIZE)"
 if [[ "$PAGE_SIZE" == "16384" ]]; then
-  #switch to 4K pagesize kernel
-  if [ -f /boot/config.txt ] || [ -f /boot/firmware/config.txt ]; then
-    if [ -f /boot/firmware/config.txt ]; then
-      boot_config="/boot/firmware/config.txt"
-    elif [ -f /boot/config.txt ]; then
-      boot_config="/boot/config.txt"
-    fi
-    text="Raspberry Pi 5 PiOS images ship by default with a 16K PageSize Linux Kernel.
-This kernel causes incompatibilities with some software including Wine https://github.com/raspberrypi/bookworm-feedback/issues/107
-
-Would you like to automatically switch to a 4K PageSize Linux Kernel?"
-    userinput_func "$text" "No, keep 16K PageSize Kernel and Exit" "Yes, switch to 4K PageSize Kernel"
-    if [ "$output" == "No, keep 16K PageSize Kernel and Exit" ]; then
-      error "User error: Your current running kernel is built with 16K PageSize and is incompatible with Wine (x64) with Box64. You must switch to a 4K PageSize kernel (and chose to not do so automatically) before installing Wine (x64)."
-    fi
-    echo "" | sudo tee --append $boot_config >/dev/null
-    echo "[pi5]" | sudo tee --append $boot_config >/dev/null
-    echo "kernel=kernel8.img" | sudo tee --append $boot_config >/dev/null
-    echo -e "The 4K PageSize Kernel has been enabled by adding 'kernel=kernel8.img' to $boot_config\nPlease reboot now and install the Wine (x64) app again."
-    sleep infinity
-  else
-    error "User error (reporting allowed): Your current running kernel is built with 16K PageSize and is incompatible with Wine (x64) with Box64. Changing kernels automatically cannot be done since no /boot/config.txt or /boot/firmware/config.txt file was found."
-  fi
+  info "Raspberry Pi 5 detected with 16K PageSize Linux Kernel."
+  info "This kernel causes incompatibilities with Wine. You need to switch to a 4K PageSize kernel."
+  info "To fix this manually, add 'kernel=kernel8.img' under '[pi5]' section in /boot/config.txt or /boot/firmware/config.txt"
+  info "Then reboot and run this script again."
+  exit 0
 fi
 
-# Hangover conflicts with Wine
-"${DIRECTORY}/manage" uninstall "Wine (x64)"
-if package_installed fonts-wine ;then
+# Remove existing Wine installations that might conflict
+info "Checking for existing Wine installations..."
+if dpkg -l fonts-wine 2>/dev/null | grep -q "^ii"; then
   sudo apt purge fonts-wine -y || exit 1
 fi
-if package_installed libwine ;then
+if dpkg -l libwine 2>/dev/null | grep -q "^ii"; then
   sudo apt purge libwine -y || exit 1
 fi
 
@@ -63,7 +63,7 @@ elif [ "$__os_codename" == "noble" ]; then
 elif [ "$__os_codename" == "plucky" ]; then
   ho_distro="ubuntu2504"
 else
-  error "User error: You are not using a supported Pi-Apps distribution."
+  error "You are not using a supported distribution."
 fi
 
 cd /tmp || error "Could not move to /tmp folder"
@@ -71,40 +71,42 @@ wget https://github.com/AndreRH/hangover/releases/download/hangover-${version}/h
 tar -xf hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar || error "Failed to extract Hangover!"
 rm -f hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar
 
-install_packages \
-  /tmp/hangover-libarm64ecfex_${version}_arm64.deb \
-  /tmp/hangover-libwow64fex_${version}_arm64.deb \
-  /tmp/hangover-wine_${version}~${__os_codename}_arm64.deb \
-  /tmp/hangover-wowbox64_${version}_arm64.deb \
-  || exit 1
+# install .deb's using PACKAGES list
+echo -n "Installing Hangover packages... "
+for pkg in "${PACKAGES[@]}"; do
+  if [ "$pkg" = "hangover-wine" ]; then
+    deb="/tmp/${pkg}_${version}~${__os_codename}_arm64.deb"
+  else
+    deb="/tmp/${pkg}_${version}_arm64.deb"
+  fi
+  sudo apt install -y "$deb" || exit 1
+done
+echo "Done"
 
-rm -f \
-  ./hangover-libarm64ecfex_${version}_arm64.deb \
-  ./hangover-libwow64fex_${version}_arm64.deb \
-  ./hangover-wine_${version}~${__os_codename}_arm64.deb \
-  ./hangover-wowbox64_${version}_arm64.deb
+# cleanup .deb using PACKAGES list
+for pkg in "${PACKAGES[@]}"; do
+  if [ "$pkg" = "hangover-wine" ]; then
+    deb="/tmp/${pkg}_${version}~${__os_codename}_arm64.deb"
+  else
+    deb="/tmp/${pkg}_${version}_arm64.deb"
+  fi
+  rm -f "$deb"
+done
 
-cat << EOF | sudo tee /usr/local/bin/generate-hangover-prefix >/dev/null
+cat << 'EOF' | sudo tee /usr/local/bin/generate-hangover-prefix >/dev/null
 #!/bin/bash
-echo
 
-#set up functions
-$(declare -f error)
-$(declare -f status)
-$(declare -f status_green)
-$(declare -f warning)
-$(declare -f userinput_func)
-
-if [ "\$(id -u)" == 0 ];then
-  error "Please don't run this script with sudo."
+if [ "$(id -u)" == 0 ];then
+  echo "ERROR: Please don't run this script with sudo." >&2
+  exit 1
 fi
 
-if [ -z "\$WINEPREFIX" ];then
-  WINEPREFIX="\$HOME/.wine"
+if [ -z "$WINEPREFIX" ];then
+  WINEPREFIX="$HOME/.wine"
 fi
 export WINEPREFIX
 
-if [ -f "\$WINEPREFIX/system.reg" ];then
+if [ -f "$WINEPREFIX/system.reg" ];then
   registry_exists=true
 else
   registry_exists=false
@@ -112,35 +114,29 @@ fi
 
 export WINEDEBUG=-virtual #hide harmless memory errors
 
-if [ -e "\$WINEPREFIX" ];then
-  status "Checking Wine prefix at \$WINEPREFIX..."
+if [ -e "$WINEPREFIX" ];then
+  echo "Checking Wine prefix at $WINEPREFIX..."
   echo "To choose another prefix, set the WINEPREFIX variable."
   echo -n "Waiting 5 seconds... "
   sleep 5
   echo
   # check for existance of incompatible prefix (see server_init_process https://github.com/wine-mirror/wine/blob/884cff821481b4819f9bdba455217bd5a3f97744/dlls/ntdll/unix/server.c#L1544-L1670)
   # Boot wine and check for errors (make fresh wineprefix)
-  output="\$(set -o pipefail; wine wineboot 2>&1 | tee /dev/stderr; )" #this won't display any dialog boxes that require a button to be clicked
-  if [ "\$?" != 0 ]; then
-    text="Your previously existing Wine prefix failed with an error (see terminal log).
-
-Would you like to remove and regenerate your Wine prefix? Doing so will delete anything you may have installed into your Wine prefix."
-    userinput_func "\$text" "No, keep broken Wine prefix and Exit" "Yes, delete and regenerate Wine prefix"
-    if [ "\$output" == "No, keep broken Wine prefix and Exit" ]; then
-      error "User error: Your current Wine prefix caused Wine to error on launch and you chose to keep it. Manually correct your Wine prefix before installing or updating Wine (x64)."
-    fi
-    warning "Your previously existing Wine prefix failed with an error (see above). You chose to remove it and so it will be re-generated."
-    rm -rf "\$WINEPREFIX"
+  output="$(set -o pipefail; wine wineboot 2>&1 | tee /dev/stderr; )" #this won't display any dialog boxes that require a button to be clicked
+  if [ "$?" != 0 ]; then
+    echo "Your previously existing Wine prefix failed with an error (see terminal log)."
+    echo "Removing and regenerating Wine prefix..."
+    rm -rf "$WINEPREFIX"
     registry_exists=false
     wine wineboot #this won't display any dialog boxes that require a button to be clicked
   fi
   #wait until above process exits
   sleep 2
-  while [ ! -z "\$(pgrep -i 'wine C:')" ];do
+  while [ ! -z "$(pgrep -i 'wine C:')" ];do
     sleep 1
   done
 else
-  status "Generating Wine prefix at \$WINEPREFIX..."
+  echo "Generating Wine prefix at $WINEPREFIX..."
   echo "To choose another prefix, set the WINEPREFIX variable."
   echo "Waiting 5 seconds..."
   sleep 5
@@ -148,28 +144,28 @@ else
   wine wineboot #this won't display any dialog boxes that require a button to be clicked
   #wait until above process exits
   sleep 2
-  while [ ! -z "\$(pgrep -i 'wine C:')" ];do
+  while [ ! -z "$(pgrep -i 'wine C:')" ];do
     sleep 1
   done
 fi
 
-if [ "\$registry_exists" == false ];then
-status "Making registry changes..."
-TMPFILE="\$(mktemp)" || exit 1
-echo 'REGEDIT4' > \$TMPFILE
+if [ "$registry_exists" == false ];then
+echo "Making registry changes..."
+TMPFILE="$(mktemp)" || exit 1
+echo 'REGEDIT4' > $TMPFILE
 
 echo "  - Disabling Wine mime associations" #see https://askubuntu.com/a/400430
 
 echo '
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunServices]
-"winemenubuilder"="C:\\\\windows\\\\system32\\\\winemenubuilder.exe -r"
+"winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"
 
 [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunServices]
-"winemenubuilder"="C:\\\\windows\\\\system32\\\\winemenubuilder.exe -r"' >> \$TMPFILE
+"winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"' >> $TMPFILE
 
-wine regedit \$TMPFILE
+wine regedit $TMPFILE
 
-rm -f \$TMPFILE
+rm -f $TMPFILE
 fi #end of if statement that only runs if this script was started when there was no wine registry
 true
 EOF
