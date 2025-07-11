@@ -1,5 +1,5 @@
 
-# hangover-wine-easy-download
+# hangover-wine-easy-install
 
 Install Hangover (a lightweight Wine wrapper for 32‑bit Windows apps) on ARM64 boards with a single `curl | bash` command—no Pi‑Apps installation required.
 
