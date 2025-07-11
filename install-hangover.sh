@@ -71,7 +71,7 @@ wget https://github.com/AndreRH/hangover/releases/download/hangover-${version}/h
 tar -xf hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar || error "Failed to extract Hangover!"
 rm -f hangover_${version}_${ho_distro}_${__os_codename}_arm64.tar
 
-# install .deb's using PACKAGES list
+# install .deb files using PACKAGES list
 echo -n "Installing Hangover packages... "
 for pkg in "${PACKAGES[@]}"; do
   if [ "$pkg" = "hangover-wine" ]; then
@@ -83,7 +83,7 @@ for pkg in "${PACKAGES[@]}"; do
 done
 echo "Done"
 
-# cleanup .deb using PACKAGES list
+# cleanup .deb files using PACKAGES list
 for pkg in "${PACKAGES[@]}"; do
   if [ "$pkg" = "hangover-wine" ]; then
     deb="/tmp/${pkg}_${version}~${__os_codename}_arm64.deb"
