@@ -1,24 +1,41 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-pkill -9 wine
-command -v wineserver >/dev/null && wineserver -k
+# kill any running Wine processes
+pkill -9 wine 2>/dev/null || true
+command -v wineserver >/dev/null && wineserver -k 2>/dev/null || true
 
-status -n "Removing terminal commands... "
-sudo rm -rf /usr/local/bin/generate-hangover-prefix
-status_green "Done"
+# remove the helper
+echo -n "Removing terminal commands... "
+sudo rm -f /usr/local/bin/generate-hangover-prefix
+echo "Done"
 
-status -n "Removing mimetypes... "
-#See: https://askubuntu.com/a/400430
+# clear Wine mime/app entries
+echo -n "Removing mimetypes... "
+# see: https://askubuntu.com/a/400430
 rm -f ~/.local/share/mime/packages/x-wine*
 rm -f ~/.local/share/applications/wine-extension*
 rm -f ~/.local/share/icons/hicolor/*/*/application-x-wine-extension*
 rm -f ~/.local/share/mime/application/x-wine-extension*
-status_green "Done"
+echo "Done"
 
-purge_packages || exit 1
+# purge the Hangover packages
+echo -n "Purging Hangover packages... "
+sudo apt purge -y \
+  hangover-libarm64ecfex \
+  hangover-libwow64fex \
+  hangover-wine \
+  hangover-wowbox64 \
+  || exit 1
+echo "Done"
 
-if [ -e "$HOME/.wine" ];then
-  echo -e "\n\n\e[93mYou just uninstalled the Hangover app, but it's not completely gone yet.
-To prevent data loss, your Wine configuration is still\nlocated in the $HOME/.wine folder. Feel free to delete it to save space or to rename the folder for troubleshooting.\e[39m\n"
+# warn about remaining Wine prefix
+if [ -d "$HOME/.wine" ]; then
+  echo -e "\n\nYou just uninstalled the Hangover app, but it's not completely gone yet.
+To prevent data loss, your Wine configuration is still located in:
+  $HOME/.wine
+
+Feel free to delete or rename that folder to free up space or troubleshoot.\n"
 fi
+
 true
