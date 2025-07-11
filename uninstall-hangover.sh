@@ -20,9 +20,9 @@ INFO_FUNC='info() {
 }'
 
 # Helper functions
-${ERROR_FUNC}
+eval "${ERROR_FUNC}"
 
-${INFO_FUNC}
+eval "${INFO_FUNC}"
 
 # kill any running Wine processes
 pkill -9 wine 2>/dev/null || true

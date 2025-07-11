@@ -22,9 +22,9 @@ INFO_FUNC='info() {
 }'
 
 # Helper functions
-${ERROR_FUNC}
+eval "${ERROR_FUNC}"
 
-${INFO_FUNC}
+eval "${INFO_FUNC}"
 
 # Detect OS codename
 if [ -f /etc/os-release ]; then
