@@ -31,8 +31,3 @@ This installer is based on the Pi‑Apps Hangover script:
 
 
 This installer is based on Pi‑Apps’ Hangover script by Botspot, which is released under the MIT License. All reused code is fully compliant with its original open‑source license.
-
-
-## License
-
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
