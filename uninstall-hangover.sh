@@ -9,38 +9,47 @@ PACKAGES=(
   hangover-wowbox64
 )
 
+# Helper functions
+error() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
+info() {
+  echo "INFO: $1"
+}
+
 # kill any running Wine processes
 pkill -9 wine 2>/dev/null || true
 command -v wineserver >/dev/null && wineserver -k 2>/dev/null || true
 
 # remove the helper
-echo -n "Removing terminal commands... "
-sudo rm -f /usr/local/bin/generate-hangover-prefix
-echo "Done"
+info "Removing terminal commands..."
+sudo rm -f /usr/local/bin/generate-hangover-prefix || error "Failed to remove generate-hangover-prefix"
+info "Done"
 
 # clear Wine mime/app entries
-echo -n "Removing mimetypes... "
+info "Removing mimetypes..."
 # see: https://askubuntu.com/a/400430
 rm -f ~/.local/share/mime/packages/x-wine*
 rm -f ~/.local/share/applications/wine-extension*
 rm -f ~/.local/share/icons/hicolor/*/*/application-x-wine-extension*
 rm -f ~/.local/share/mime/application/x-wine-extension*
-echo "Done"
+info "Done"
 
 # purge the Hangover packages
-echo -n "Purging Hangover packages... "
+info "Purging Hangover packages..."
 for pkg in "${PACKAGES[@]}"; do
   sudo apt purge -y "${pkg}"* || true
 done
-echo "Done"
+info "Done"
 
 # warn about remaining Wine prefix
 if [ -d "$HOME/.wine" ]; then
-  echo -e "\n\nYou just uninstalled the Hangover app, but it's not completely gone yet.
-To prevent data loss, your Wine configuration is still located in:
-  $HOME/.wine
-
-Feel free to delete or rename that folder to free up space or troubleshoot.\n"
+  info "You just uninstalled the Hangover app, but it's not completely gone yet."
+  info "To prevent data loss, your Wine configuration is still located in:"
+  info "  $HOME/.wine"
+  info "Feel free to delete or rename that folder to free up space or troubleshoot."
 fi
 
 true
