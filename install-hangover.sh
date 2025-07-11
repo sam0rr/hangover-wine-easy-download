@@ -7,8 +7,8 @@ version=10.11
 PACKAGES=(
   hangover-libarm64ecfex
   hangover-libwow64fex
-  hangover-wine
   hangover-wowbox64
+  hangover-wine
 )
 
 # Helper functions
