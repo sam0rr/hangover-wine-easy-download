@@ -167,17 +167,17 @@ info "  - Disabling Wine mime associations" #see https://askubuntu.com/a/400430
 
 echo '
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunServices]
-"winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"
+"winemenubuilder"="C:\\\\windows\\\\system32\\\\winemenubuilder.exe -r"
 
 [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunServices]
-"winemenubuilder"="C:\\windows\\system32\\winemenubuilder.exe -r"' >> \$TMPFILE
+"winemenubuilder"="C:\\\\windows\\\\system32\\\\winemenubuilder.exe -r"' >> \$TMPFILE
 
 wine regedit \$TMPFILE
 
 # Make sure HKCU also gets added even on existing prefixes
-wine reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices" \\
+wine reg add "HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\RunServices" \\
   /v winemenubuilder /t REG_SZ \\
-  /d "C:\\windows\\system32\\winemenubuilder.exe -r" /f
+  /d "C:\\\\windows\\\\system32\\\\winemenubuilder.exe -r" /f
 
 rm -f \$TMPFILE
 fi #end of if statement that only runs if this script was started when there was no wine registry
