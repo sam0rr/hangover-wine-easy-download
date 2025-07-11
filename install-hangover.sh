@@ -1,6 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 version=10.11
+
+# List of Hangover packages (update as needed)
+PACKAGES=(
+  hangover-libarm64ecfex
+  hangover-libwow64fex
+  hangover-wine
+  hangover-wowbox64
+)
 
 # https://github.com/raspberrypi/bookworm-feedback/issues/107
 PAGE_SIZE="$(getconf PAGE_SIZE)"

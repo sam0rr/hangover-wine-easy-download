@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# List of Hangover packages (update as needed)
+PACKAGES=(
+  hangover-libarm64ecfex
+  hangover-libwow64fex
+  hangover-wine
+  hangover-wowbox64
+)
+
 # kill any running Wine processes
 pkill -9 wine 2>/dev/null || true
 command -v wineserver >/dev/null && wineserver -k 2>/dev/null || true
@@ -21,12 +29,9 @@ echo "Done"
 
 # purge the Hangover packages
 echo -n "Purging Hangover packages... "
-sudo apt purge -y \
-  hangover-libarm64ecfex \
-  hangover-libwow64fex \
-  hangover-wine \
-  hangover-wowbox64 \
-  || exit 1
+for pkg in "${PACKAGES[@]}"; do
+  sudo apt purge -y "${pkg}"* || true
+done
 echo "Done"
 
 # warn about remaining Wine prefix
